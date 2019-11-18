@@ -149,13 +149,19 @@ class DomainContentResolver
             ['filter' => new Query\Criterion\ContentId($destinationContentIds)]
         ));
 
+        if (empty($contentItems) || array_key_exists(0, $contentItems) && null === $contentItems[0]) {
+            return $multiple ? [] : null;
+        }
+
         if ($multiple) {
-            return array_map(
-                function ($contentId) use ($contentItems) {
-                    return $contentItems[array_search($contentId, array_column($contentItems, 'id'))];
-                },
-                $destinationContentIds
-            );
+            $items = [];
+            foreach ($destinationContentIds as $destinationContentId) {
+                $key = array_search($destinationContentId, array_column($contentItems, 'id'));
+                if (is_integer($key)) {
+                    $items[] = $contentItems[$key];
+                }
+            }
+            return $items;
         }
 
         return $contentItems[0] ?? null;
