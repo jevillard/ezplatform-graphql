@@ -21,7 +21,7 @@ ContentSearchQuery:
                 type: "[Int]"
                 description: "Filter content based on its parent location id"
             SubtreePath:
-                type: "String"
+                type: "[String]"
                 description: "Filter content based on subtree path string"
             Field:
                 type: "[FieldCriterionInput]"
