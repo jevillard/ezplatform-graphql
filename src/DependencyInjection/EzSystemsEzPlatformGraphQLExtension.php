@@ -20,11 +20,11 @@ use Symfony\Component\DependencyInjection\Loader;
  */
 class EzSystemsEzPlatformGraphQLExtension extends Extension implements PrependExtensionInterface
 {
-    private const APP_SCHEMA_DIR_RELATIVE_PATH = '/config/graphql';
-    private const EZPLATFORM_SCHEMA_DIR_RELATIVE_PATH = '/ezplatform';
-    private const PACKAGE_DIR_RELATIVE_PATH = '/../vendor/ezsystems/ezplatform-graphql';
-    private const PACKAGE_SCHEMA_DIR_RELATIVE_PATH = '/src/Resources/config/graphql';
-    private const FIELS_DEFINITION_FILE_NAME = 'Field.types.yml';
+    private const SCHEMA_DIR_PATH = '/config/graphql/types';
+    private const EZPLATFORM_SCHEMA_DIR_PATH = '/ezplatform';
+    private const PACKAGE_DIR_PATH = '/vendor/ezsystems/ezplatform-graphql';
+    private const PACKAGE_SCHEMA_DIR_PATH = '/src/Resources/config/graphql';
+    private const FIELDS_DEFINITION_FILE_NAME = 'Field.types.yaml';
 
     /**
      * {@inheritdoc}
@@ -35,12 +35,12 @@ class EzSystemsEzPlatformGraphQLExtension extends Extension implements PrependEx
         $config = $this->processConfiguration($configuration, $configs);
 
         $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
-        $loader->load('services/data_loaders.yml');
-        $loader->load('services/mutations.yml');
-        $loader->load('services/resolvers.yml');
-        $loader->load('services/schema.yml');
-        $loader->load('services/services.yml');
-        $loader->load('default_settings.yml');
+        $loader->load('services/data_loaders.yaml');
+        $loader->load('services/mutations.yaml');
+        $loader->load('services/resolvers.yaml');
+        $loader->load('services/schema.yaml');
+        $loader->load('services/services.yaml');
+        $loader->load('default_settings.yaml');
     }
 
     /**
@@ -52,7 +52,16 @@ class EzSystemsEzPlatformGraphQLExtension extends Extension implements PrependEx
 
         $configDir = $container->getParameter('ezplatform.graphql.schema.root_dir');
 
-        $container->prependExtensionConfig('overblog_graphql', $this->getGraphQLConfig($configDir));
+        $graphQLConfig = $this->getGraphQLConfig($configDir);
+        $graphQLConfig['definitions']['mappings']['types'][] = [
+            'type' => 'yaml',
+            'dir' => $container->getParameter('ezplatform.graphql.package.root_dir') . self::PACKAGE_SCHEMA_DIR_PATH,
+        ];
+        $graphQLConfig['definitions']['mappings']['types'][] = [
+            'type' => 'yaml',
+            'dir' => $container->getParameter('kernel.project_dir') . self::SCHEMA_DIR_PATH,
+        ];
+        $container->prependExtensionConfig('overblog_graphql', $graphQLConfig);
     }
 
     /**
@@ -64,10 +73,12 @@ class EzSystemsEzPlatformGraphQLExtension extends Extension implements PrependEx
      */
     private function getGraphQLConfig(string $configDir): array
     {
+        $schemaConfiguration = (new YamlSchemaProvider($configDir))->getSchemaConfiguration();
+
         return [
             'definitions' => [
                 'config_validation' => '%kernel.debug%',
-                'schema' => (new YamlSchemaProvider($configDir))->getSchemaConfiguration(),
+                'schema' => $schemaConfiguration,
             ],
         ];
     }
@@ -77,11 +88,12 @@ class EzSystemsEzPlatformGraphQLExtension extends Extension implements PrependEx
      */
     private function setContainerParameters(ContainerBuilder $container): void
     {
-        $rootDir = rtrim($container->getParameter('kernel.root_dir'), '/');
-        $appSchemaDir = $rootDir . self::APP_SCHEMA_DIR_RELATIVE_PATH;
-        $eZPlatformSchemaDir = $appSchemaDir . self::EZPLATFORM_SCHEMA_DIR_RELATIVE_PATH;
-        $packageRootDir = $rootDir . self::PACKAGE_DIR_RELATIVE_PATH;
-        $fieldsDefinitionFile = $packageRootDir . self::PACKAGE_SCHEMA_DIR_RELATIVE_PATH . DIRECTORY_SEPARATOR . self::FIELS_DEFINITION_FILE_NAME;
+        $rootDir = rtrim($container->getParameter('kernel.project_dir'), '/');
+
+        $appSchemaDir = $rootDir . self::SCHEMA_DIR_PATH;
+        $eZPlatformSchemaDir = $appSchemaDir . self::EZPLATFORM_SCHEMA_DIR_PATH;
+        $packageRootDir = $rootDir . self::PACKAGE_DIR_PATH;
+        $fieldsDefinitionFile = $packageRootDir . self::PACKAGE_SCHEMA_DIR_PATH . DIRECTORY_SEPARATOR . self::FIELDS_DEFINITION_FILE_NAME;
 
         $container->setParameter('ezplatform.graphql.schema.root_dir', $appSchemaDir);
         $container->setParameter('ezplatform.graphql.schema.ezplatform_dir', $eZPlatformSchemaDir);

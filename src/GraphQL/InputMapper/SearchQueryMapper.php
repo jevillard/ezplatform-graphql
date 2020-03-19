@@ -55,6 +55,11 @@ class SearchQueryMapper
             $criteria[] = new Query\Criterion\ParentLocationId($inputArray['ParentLocationId']);
         }
 
+        if (isset($inputArray['SubtreePath'])) {
+            $criteria[] = new Query\Criterion\Subtree($inputArray['SubtreePath']);
+        }
+
+
         $criteria = array_merge($criteria, $this->mapDateMetadata($inputArray, 'Modified'));
         $criteria = array_merge($criteria, $this->mapDateMetadata($inputArray, 'Created'));
 
